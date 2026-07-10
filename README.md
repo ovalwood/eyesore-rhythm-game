@@ -7,8 +7,8 @@ DDR-style arrow build.
 - Falling directional arrows
 - Rebuilt chart aligned to the detected beat grid
 - 263 notes
-- Detected tempo: 114.84 BPM
-- First beat: 0.464 seconds
+- Chart tempo: exactly 115 BPM
+- First beat offset: 0.4644 seconds
 
 Open `index.html` or serve the folder with `python -m http.server 8000`.
 
