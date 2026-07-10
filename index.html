@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"
+    />
+    <meta name="theme-color" content="#08080d" />
+    <title>Eyesore — Rhythm Game</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- The fixed-ratio phone viewport. Desktop browsers center this shell. -->
+    <div id="stage-shell">
+      <main id="app">
+        <!-- Always-visible gameplay HUD. -->
+        <header class="hud">
+          <div><span>Score</span><strong id="score">0</strong></div>
+          <div><span>Combo</span><strong id="combo">0</strong></div>
+          <div><span>Accuracy</span><strong id="accuracy">100%</strong></div>
+          <button id="pause-button" aria-label="Pause">Ⅱ</button>
+        </header>
+        <div id="progress"><i id="progress-fill"></i></div>
+        <!-- Canvas draws the lanes and arrows; the divs provide CSS effects. -->
+        <div id="game-wrap">
+          <canvas id="game"></canvas>
+          <div id="section-label"></div>
+          <div id="combo-burst"></div>
+          <div id="timing-flash">
+            <b id="timing-word"></b><small id="timing-offset"></small>
+          </div>
+          <div id="countdown"></div>
+        </div>
+        <!-- Touch controls map directly to chart lane numbers 0 through 3. -->
+        <section id="controls">
+          <button data-lane="0">←</button><button data-lane="1">↑</button
+          ><button data-lane="2">↓</button><button data-lane="3">→</button>
+        </section>
+      </main>
+    </div>
+    <!-- Full-screen menu overlays. JavaScript shows only the active one. -->
+    <section id="title-screen" class="overlay">
+      <div class="panel">
+        <p class="eyebrow">Seudo Youth</p>
+        <h1>EYESORE</h1>
+        <div class="song-info">
+          <span>NORMAL</span><strong>6</strong><span>115 BPM</span>
+        </div>
+        <button id="start-button" class="primary">PLAY</button
+        ><button id="controls-button" class="secondary">HOW TO PLAY</button>
+        <p class="shortcut">Tap play · desktop: Enter</p>
+      </div>
+    </section>
+    <section id="pause-screen" class="overlay hidden">
+      <div class="panel">
+        <p class="eyebrow">PAUSED</p>
+        <h2>Eyesore</h2>
+        <button id="resume-button" class="primary">RESUME</button
+        ><button id="restart-button" class="secondary">RESTART</button
+        ><button id="menu-button" class="secondary">QUIT TO TITLE</button>
+        <p class="shortcut">Esc resumes · R restarts</p>
+      </div>
+    </section>
+    <section id="controls-screen" class="overlay hidden">
+      <div class="panel">
+        <h2>How to play</h2>
+        <p>
+          Match each falling arrow to the stationary arrow receptor, just like
+          DDR.
+        </p>
+        <div class="key-demo">← ↑ ↓ →</div>
+        <p class="subtle">Desktop: arrow keys · Esc pauses · R restarts</p>
+        <button id="controls-back-button" class="primary">BACK</button>
+      </div>
+    </section>
+    <section id="results-screen" class="overlay hidden">
+      <div class="panel">
+        <p class="eyebrow">SONG COMPLETE</p>
+        <div id="result-grade">A</div>
+        <h2 id="result-score">0</h2>
+        <p id="result-accuracy"></p>
+        <div id="result-stats"></div>
+        <button id="play-again-button" class="primary">PLAY AGAIN</button
+        ><button id="results-menu-button" class="secondary">
+          TITLE SCREEN
+        </button>
+      </div>
+    </section>
+    <!-- Chart data must load before the engine that reads it. -->
+    <audio id="song" src="Eyesore.mp3" preload="auto"></audio>
+    <script src="chart.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

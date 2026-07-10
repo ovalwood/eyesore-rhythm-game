@@ -1,0 +1,409 @@
+/* Global reset and browser/phone behavior */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #050508;
+  color: #fff;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  touch-action: none;
+}
+body {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    circle at 50% 25%,
+    #24202d 0,
+    #08080d 45%,
+    #020203 100%
+  );
+}
+button {
+  font: inherit;
+}
+#stage-shell {
+  height: 100dvh;
+  max-height: 844px;
+  aspect-ratio: 390/844;
+  width: min(100vw, calc(100dvh * 390 / 844));
+  padding: 0;
+  position: relative;
+  box-shadow: 0 0 80px #000;
+  background: #0b0b11;
+  overflow: hidden;
+}
+@media (min-aspect-ratio: 390/844) {
+  #stage-shell {
+    border-left: 1px solid #282630;
+    border-right: 1px solid #282630;
+  }
+}
+
+/* Fixed portrait game layout: HUD, progress, playfield, then touch controls */
+#app {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: 64px 4px 1fr 112px;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+/* Score, combo, accuracy, and pause button */
+.hud {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 42px;
+  gap: 4px;
+  align-items: center;
+  padding: 8px 9px;
+  background: rgba(10, 10, 16, 0.96);
+  z-index: 3;
+}
+.hud div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.hud span {
+  font-size: 9px;
+  color: #8f8d99;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.hud strong {
+  font-size: 17px;
+}
+.hud button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #393643;
+  border-radius: 10px;
+  background: #1b1922;
+  color: #fff;
+  font-weight: 900;
+}
+#progress {
+  background: #1b1922;
+  z-index: 4;
+}
+#progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: #fff;
+  box-shadow: 0 0 12px #fff;
+}
+/* Canvas playfield and effects layered over it */
+#game-wrap {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* Large bottom-row touch targets */
+#controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #0b0b10;
+}
+#controls button {
+  border: 0;
+  border-top: 2px solid #45414f;
+  border-right: 1px solid #2b2932;
+  background: #181720;
+  color: #fff;
+  font-size: 39px;
+  font-weight: 900;
+  touch-action: manipulation;
+  transition:
+    transform 60ms,
+    background 60ms;
+}
+#controls button:last-child {
+  border-right: 0;
+}
+#controls button.active {
+  background: #fff;
+  color: #0a0a0e;
+  transform: translateY(3px);
+}
+/* Temporary judgment, combo, section, and countdown messages */
+#timing-flash {
+  position: absolute;
+  left: 50%;
+  top: 61%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  text-shadow: 0 4px 18px #000;
+}
+#timing-flash.show {
+  animation: timing 0.36s ease-out;
+}
+#timing-word {
+  font-size: 34px;
+  letter-spacing: 0.04em;
+}
+#timing-offset {
+  font-size: 12px;
+  font-weight: 800;
+  color: #d8d6df;
+}
+.perfect #timing-word {
+  color: #fff;
+}
+.good #timing-word {
+  color: #bfffa8;
+}
+.bad #timing-word {
+  color: #ffd27a;
+}
+.miss #timing-word {
+  color: #ff868f;
+}
+#combo-burst {
+  position: absolute;
+  left: 50%;
+  top: 43%;
+  transform: translate(-50%, -50%);
+  font-size: 54px;
+  font-weight: 950;
+  opacity: 0;
+  pointer-events: none;
+  text-shadow: 0 6px 25px #000;
+}
+#combo-burst.show {
+  animation: combo 0.45s ease-out;
+}
+#section-label {
+  position: absolute;
+  left: 50%;
+  top: 9%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+  color: #aaa6b3;
+  opacity: 0;
+  white-space: nowrap;
+}
+#section-label.show {
+  animation: section 1.6s ease-out;
+}
+#countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 116px;
+  font-weight: 950;
+  opacity: 0;
+  text-shadow: 0 8px 30px #000;
+  pointer-events: none;
+}
+#countdown.show {
+  animation: count 0.5s ease-out;
+}
+/* Title, pause, instructions, and results screens */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(3, 3, 6, 0.93);
+}
+.overlay.hidden {
+  display: none;
+}
+.panel {
+  width: min(360px, 100%);
+  padding: 28px 24px;
+  border: 1px solid #3b3745;
+  border-radius: 21px;
+  background: linear-gradient(160deg, #1a1821, #0e0d13);
+  text-align: center;
+  box-shadow: 0 24px 70px #000;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: #aaa6b3;
+  margin: 0 0 8px;
+}
+.panel h1 {
+  font-size: 62px;
+  line-height: 0.9;
+  margin: 0 0 22px;
+  letter-spacing: -0.065em;
+}
+.panel h2 {
+  font-size: 34px;
+  margin: 0 0 18px;
+}
+.song-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 13px;
+  margin: 0 auto 24px;
+  color: #aaa6b3;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.song-info strong {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  font-size: 20px;
+}
+.panel button {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  margin-top: 11px;
+  border-radius: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+.primary {
+  border: 0;
+  background: #fff;
+  color: #111;
+}
+.secondary {
+  border: 1px solid #403c49;
+  background: #211f28;
+  color: #fff;
+}
+.shortcut,
+.subtle,
+#result-accuracy {
+  font-size: 12px;
+  color: #aaa6b3;
+}
+.key-demo {
+  font-size: 43px;
+  margin: 20px 0;
+}
+#result-grade {
+  font-size: 84px;
+  font-weight: 950;
+  line-height: 1;
+}
+#result-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin: 17px 0;
+  color: #cbc8d2;
+  font-size: 12px;
+}
+#result-stats span {
+  padding: 9px;
+  background: #1d1b23;
+  border-radius: 9px;
+}
+/* One-shot feedback animations; JavaScript restarts these when needed */
+@keyframes timing {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.65);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -62%) scale(0.94);
+  }
+}
+@keyframes combo {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  25% {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -65%) scale(1);
+  }
+}
+@keyframes section {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  20%,
+  65% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes count {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+}
+#controls button {
+  font-family:
+    Arial Unicode MS,
+    Segoe UI Symbol,
+    sans-serif;
+}
+#game-wrap:after {
+  content: "MATCH THE ARROWS";
+  position: absolute;
+  left: 50%;
+  bottom: 16.5%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.32);
+  pointer-events: none;
+  white-space: nowrap;
+}

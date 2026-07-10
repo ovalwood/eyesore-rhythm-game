@@ -1,0 +1,3 @@
+# Local editor and dependency files are not part of the published game.
+.vscode/
+node_modules/
