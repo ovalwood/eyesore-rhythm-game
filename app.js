@@ -33,7 +33,9 @@ let state = "title",
   judgedCount = 0,
   j = { PERFECT: 0, GOOD: 0, BAD: 0, MISS: 0 },
   raf,
-  lastSection = "";
+  lastSection = "",
+  receptorFlashUntil = Array(LANES).fill(0),
+  buttonFlashTimers = Array(LANES).fill(null);
 
 // -----------------------------------------------------------------------------
 // Screen, canvas, and HUD helpers
@@ -136,8 +138,16 @@ function hit(lane) {
   else judge("BAD", o);
 }
 function flash(l) {
+  // Mirror each press on both the touch control and its stationary receptor.
+  // The deadline makes quick repeated presses extend the canvas flash instead
+  // of letting an older timeout cut the newer pulse short.
+  receptorFlashUntil[l] = performance.now() + 110;
   buttons[l].classList.add("active");
-  setTimeout(() => buttons[l].classList.remove("active"), 75);
+  clearTimeout(buttonFlashTimers[l]);
+  buttonFlashTimers[l] = setTimeout(
+    () => buttons[l].classList.remove("active"),
+    90,
+  );
 }
 function section(now) {
   let s = C.sections.find((x) => now >= x.start && now < x.end);
@@ -182,7 +192,7 @@ function draw() {
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, hy, w, 4);
   ctx.shadowBlur = 0;
-  drawReceptors(ctx, w, hy, lw);
+  drawReceptors(ctx, w, hy, lw, performance.now());
   // Convert each upcoming note's time into a vertical position. A note starts
   // at y=0 and reaches the receptor line exactly when `until` reaches zero.
   for (const n of chart) {
@@ -216,19 +226,27 @@ function draw() {
   raf = requestAnimationFrame(draw);
 }
 
-function drawReceptors(c, w, hy, lw) {
+function drawReceptors(c, w, hy, lw, now) {
   for (let l = 0; l < 4; l++) {
-    let x = l * lw + lw / 2;
+    let x = l * lw + lw / 2,
+      active = now < receptorFlashUntil[l];
     c.save();
-    c.globalAlpha = 0.9;
-    c.fillStyle = "rgba(12,12,18,.82)";
-    c.strokeStyle = "#fff";
-    c.lineWidth = 3;
-    c.shadowBlur = 10;
-    c.shadowColor = "rgba(255,255,255,.5)";
+    c.globalAlpha = active ? 1 : 0.9;
+    c.fillStyle = active ? "#fff" : "rgba(12,12,18,.82)";
+    c.strokeStyle = active ? "#fff" : "rgba(255,255,255,.92)";
+    c.lineWidth = active ? 5 : 3;
+    c.shadowBlur = active ? 32 : 10;
+    c.shadowColor = active ? "#fff" : "rgba(255,255,255,.5)";
     drawArrow(c, x, hy, lw * 0.31, l, false);
     c.fill();
     c.stroke();
+
+    if (active) {
+      c.globalAlpha = 0.42;
+      c.lineWidth = 3;
+      drawArrow(c, x, hy, lw * 0.4, l, false);
+      c.stroke();
+    }
     c.restore();
   }
 }
@@ -270,18 +288,27 @@ async function countdown(restart) {
   hideScreens();
   audio.pause();
   if (restart) reset();
+
+  // Mobile browsers only allow playback while handling the original tap. Start
+  // the song muted now, then rewind and reveal it after the visual countdown.
+  // Waiting until after the countdown can make play() fail and bounce the user
+  // back to the title screen, which looks like an unexpected restart.
+  audio.muted = true;
+  try {
+    await audio.play();
+  } catch (e) {
+    audio.muted = false;
+    state = "title";
+    showOnly("title");
+    return;
+  }
   for (const x of ["3", "2", "1", "GO"]) {
     countText(x);
     await new Promise((r) => setTimeout(r, 470));
   }
-  // Browsers can reject audio playback if it was not triggered by user input.
-  try {
-    await audio.play();
-    state = "playing";
-  } catch (e) {
-    state = "title";
-    showOnly("title");
-  }
+  audio.currentTime = 0;
+  audio.muted = false;
+  state = "playing";
 }
 function pause() {
   if (state !== "playing") return;
@@ -291,13 +318,24 @@ function pause() {
 }
 async function resume() {
   if (state !== "paused") return;
+  let resumeAt = audio.currentTime;
   hideScreens();
   state = "countdown";
+  audio.muted = true;
+  try {
+    await audio.play();
+  } catch (e) {
+    audio.muted = false;
+    state = "paused";
+    showOnly("pause");
+    return;
+  }
   for (const x of ["3", "2", "1"]) {
     countText(x);
     await new Promise((r) => setTimeout(r, 420));
   }
-  await audio.play();
+  audio.currentTime = resumeAt;
+  audio.muted = false;
   state = "playing";
 }
 function quit() {
