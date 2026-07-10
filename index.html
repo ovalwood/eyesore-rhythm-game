@@ -87,6 +87,7 @@
           <span>NORMAL</span><strong>6</strong><span>115 BPM</span>
         </div>
         <button id="start-button" class="primary">PLAY</button
+        ><button id="leaderboard-button" class="secondary">HIGH SCORES</button
         ><button id="controls-button" class="secondary">HOW TO PLAY</button>
         <p class="shortcut">Tap play · desktop: Enter</p>
       </div>
@@ -120,10 +121,39 @@
         <h2 id="result-score">0</h2>
         <p id="result-accuracy"></p>
         <div id="result-stats"></div>
+        <form id="score-entry" class="hidden">
+          <label for="player-initials">NEW HIGH SCORE — ENTER INITIALS</label>
+          <div>
+            <input
+              id="player-initials"
+              maxlength="3"
+              inputmode="text"
+              autocomplete="off"
+              value="AAA"
+              aria-label="Three initials"
+            />
+            <button class="primary" type="submit">SAVE</button>
+          </div>
+        </form>
+        <h3 class="leaderboard-title">TOP SCORES</h3>
+        <p class="leaderboard-source" data-leaderboard-status>GLOBAL TOP 10</p>
+        <div id="result-leaderboard" class="leaderboard compact"></div>
         <button id="play-again-button" class="primary">PLAY AGAIN</button
         ><button id="results-menu-button" class="secondary">
           TITLE SCREEN
         </button>
+      </div>
+    </section>
+    <section id="leaderboard-screen" class="overlay hidden">
+      <div class="panel leaderboard-panel">
+        <p class="eyebrow">WORLDWIDE CABINET RECORDS</p>
+        <h2>HIGH SCORES</h2>
+        <p class="leaderboard-source" data-leaderboard-status>LOADING GLOBAL TOP 10</p>
+        <div class="leaderboard-head">
+          <span>RANK</span><span>PLAYER</span><span>SCORE</span><span>ACC</span>
+        </div>
+        <div id="leaderboard-list" class="leaderboard"></div>
+        <button id="leaderboard-back-button" class="primary">BACK</button>
       </div>
     </section>
     <!-- Chart data must load before the engine that reads it. -->

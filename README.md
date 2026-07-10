@@ -51,3 +51,14 @@ copy note objects ready for the `notes` array in `chart.js`.
 - Undo and Clear affect only the selected section; other sections stay intact.
 - Notes are saved in browser storage, so refreshing does not erase a take.
 - Multiple lanes on the same snapped beat are exported as jumps.
+
+## Global leaderboard
+
+Completed runs can enter three-letter initials on the results screen. The top
+10 scores are submitted to a Cloudflare Worker backed by a D1 database and can
+be viewed from the title screen. The most recent global scores are cached in
+browser storage so the board still displays if the API is temporarily offline.
+
+The backend lives in `worker/`. Its API exposes `GET /scores` and `POST /scores`,
+validates submissions, keeps only the global top 10, and only allows browser
+requests from the published game and local development origins.

@@ -13,11 +13,14 @@ const $ = (s) => document.querySelector(s),
     pause: $("#pause-screen"),
     controls: $("#controls-screen"),
     results: $("#results-screen"),
+    leaderboard: $("#leaderboard-screen"),
   };
 const LANES = 4,
   LANE_COLORS = ["#ff3cac", "#00e5ff", "#b7ff00", "#ff9d00"],
   RECORD_MODE = new URLSearchParams(location.search).has("record"),
   RECORD_STORAGE_KEY = "eyesore-recorded-chart-v1",
+  LEADERBOARD_STORAGE_KEY = "eyesore-leaderboard-v1",
+  LEADERBOARD_API = "https://eyesore-leaderboard.ovalwood.workers.dev",
   // Notes become visible this many seconds before their scheduled hit time.
   APPROACH = 1.48,
   // The receptors sit 82% of the way down the canvas.
@@ -39,7 +42,9 @@ let state = "title",
   lastSection = "",
   receptorFlashUntil = Array(LANES).fill(0),
   buttonFlashTimers = Array(LANES).fill(null),
-  recordedNotes = loadRecordedNotes();
+  recordedNotes = loadRecordedNotes(),
+  leaderboard = loadLeaderboard(),
+  scoreSubmitted = false;
 
 // -----------------------------------------------------------------------------
 // Screen, canvas, and HUD helpers
@@ -72,6 +77,7 @@ function reset() {
   audio.currentTime = 0;
   updateHud();
   lastSection = "";
+  scoreSubmitted = false;
 }
 function accuracy() {
   // Accuracy is weighted: GOOD and BAD receive partial credit, MISS gets none.
@@ -551,6 +557,120 @@ function quit() {
   state = "title";
   showOnly("title");
 }
+function normalizeLeaderboard(saved) {
+  return Array.isArray(saved)
+    ? saved
+          .filter(
+            (entry) =>
+              typeof entry.initials === "string" &&
+              Number.isFinite(entry.score) &&
+              Number.isFinite(entry.accuracy),
+          )
+          .map((entry) => ({
+            initials: entry.initials.replace(/[^A-Z0-9]/gi, "").slice(0, 3) || "AAA",
+            score: Math.max(0, Math.round(entry.score)),
+            accuracy: Math.max(0, Math.min(100, entry.accuracy)),
+            combo: Math.max(0, Math.round(entry.combo || 0)),
+            savedAt: entry.savedAt || 0,
+          }))
+          .sort((a, b) => b.score - a.score || b.accuracy - a.accuracy)
+          .slice(0, 10)
+    : [];
+}
+function loadLeaderboard() {
+  try {
+    return normalizeLeaderboard(
+      JSON.parse(localStorage.getItem(LEADERBOARD_STORAGE_KEY) || "[]"),
+    );
+  } catch (e) {
+    return [];
+  }
+}
+function setLeaderboardStatus(message) {
+  document
+    .querySelectorAll("[data-leaderboard-status]")
+    .forEach((element) => (element.textContent = message));
+}
+async function refreshGlobalLeaderboard() {
+  try {
+    let response = await fetch(`${LEADERBOARD_API}/scores`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error(`Leaderboard returned ${response.status}`);
+    leaderboard = normalizeLeaderboard(await response.json());
+    localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(leaderboard));
+    setLeaderboardStatus("GLOBAL TOP 10 · ONLINE");
+    renderLeaderboard("#leaderboard-list");
+    renderLeaderboard("#result-leaderboard", 5);
+  } catch (e) {
+    setLeaderboardStatus("CACHED SCORES · OFFLINE");
+  }
+}
+function renderLeaderboard(selector, limit = 10) {
+  let target = $(selector),
+    entries = leaderboard.slice(0, limit);
+  if (!entries.length) {
+    target.innerHTML = '<p class="leaderboard-empty">NO SCORES YET — OWN THE CABINET</p>';
+    return;
+  }
+  target.innerHTML = entries
+    .map(
+      (entry, index) =>
+        `<div class="leaderboard-row"><b>${String(index + 1).padStart(2, "0")}</b>` +
+        `<strong>${entry.initials}</strong><span>${entry.score.toLocaleString()}</span>` +
+        `<small>${entry.accuracy.toFixed(1)}%</small></div>`,
+    )
+    .join("");
+}
+function isHighScore() {
+  let last = leaderboard[leaderboard.length - 1];
+  return (
+    !scoreSubmitted &&
+    (leaderboard.length < 10 ||
+      score > last.score ||
+      (score === last.score && accuracy() > last.accuracy))
+  );
+}
+async function submitHighScore() {
+  if (!isHighScore()) return;
+  let input = $("#player-initials"),
+    initials = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3);
+  if (!initials) initials = "AAA";
+  input.value = initials;
+  localStorage.setItem("eyesore-last-initials", initials);
+  let newScore = {
+    initials,
+    score,
+    accuracy: +accuracy().toFixed(2),
+    combo: maxCombo,
+    savedAt: Date.now(),
+  };
+  try {
+    let response = await fetch(`${LEADERBOARD_API}/scores`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newScore),
+    });
+    if (!response.ok) throw new Error(`Leaderboard returned ${response.status}`);
+    leaderboard = normalizeLeaderboard(await response.json());
+    setLeaderboardStatus("GLOBAL TOP 10 · SCORE SAVED");
+  } catch (e) {
+    leaderboard.push(newScore);
+    leaderboard.sort((a, b) => b.score - a.score || b.accuracy - a.accuracy);
+    leaderboard = leaderboard.slice(0, 10);
+    setLeaderboardStatus("NETWORK ERROR · SAVED ON THIS DEVICE");
+  }
+  localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(leaderboard));
+  scoreSubmitted = true;
+  $("#score-entry").classList.add("hidden");
+  renderLeaderboard("#result-leaderboard", 5);
+}
+function openLeaderboard() {
+  state = "leaderboard";
+  renderLeaderboard("#leaderboard-list");
+  showOnly("leaderboard");
+  refreshGlobalLeaderboard();
+}
 function finish() {
   state = "results";
   let a = accuracy(),
@@ -562,6 +682,11 @@ function finish() {
   $("#result-stats").innerHTML = Object.entries(j)
     .map(([k, v]) => `<span>${k}<br><b>${v}</b></span>`)
     .join("");
+  let entry = $("#score-entry");
+  entry.classList.toggle("hidden", !isHighScore());
+  $("#player-initials").value =
+    localStorage.getItem("eyesore-last-initials") || "AAA";
+  renderLeaderboard("#result-leaderboard", 5);
   showOnly("results");
 }
 
@@ -590,8 +715,29 @@ $("#pause-button").onclick = () =>
 $("#resume-button").onclick = resume;
 $("#restart-button").onclick = () => countdown(true);
 $("#menu-button").onclick = quit;
-$("#controls-button").onclick = () => showOnly("controls");
-$("#controls-back-button").onclick = () => showOnly("title");
+$("#controls-button").onclick = () => {
+  state = "controls";
+  showOnly("controls");
+};
+$("#controls-back-button").onclick = () => {
+  state = "title";
+  showOnly("title");
+};
+$("#leaderboard-button").onclick = openLeaderboard;
+$("#leaderboard-back-button").onclick = () => {
+  state = "title";
+  showOnly("title");
+};
+$("#score-entry").onsubmit = (e) => {
+  e.preventDefault();
+  submitHighScore();
+};
+$("#player-initials").oninput = (e) => {
+  e.target.value = e.target.value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 3);
+};
 $("#play-again-button").onclick = () => countdown(true);
 $("#results-menu-button").onclick = quit;
 buttons.forEach(
@@ -616,6 +762,7 @@ addEventListener("keydown", (e) => {
     }
     return;
   }
+  if (e.target === $("#player-initials")) return;
   if (keys[e.code] != null) {
     e.preventDefault();
     if (!e.repeat) hit(keys[e.code]);
@@ -628,8 +775,10 @@ addEventListener("keydown", (e) => {
       : state === "paused"
         ? resume()
         : state === "controls"
-          ? showOnly("title")
-          : 0;
+          ? ((state = "title"), showOnly("title"))
+          : state === "leaderboard"
+            ? ((state = "title"), showOnly("title"))
+            : 0;
   } else if (e.code === "KeyR" && (state === "playing" || state === "paused")) {
     e.preventDefault();
     countdown(true);
@@ -679,5 +828,6 @@ if (RECORD_MODE) {
   saveRecording();
 } else {
   showOnly("title");
+  refreshGlobalLeaderboard();
 }
 draw();
