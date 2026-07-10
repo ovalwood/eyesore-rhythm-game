@@ -516,3 +516,329 @@ body.record-mode .hud {
   pointer-events: none;
   white-space: nowrap;
 }
+
+/* --------------------------------------------------------------------------
+   Neon street-racing arcade skin
+   -------------------------------------------------------------------------- */
+:root {
+  --ink: #070511;
+  --violet: #241058;
+  --pink: #ff3cac;
+  --cyan: #00e5ff;
+  --acid: #b7ff00;
+  --orange: #ff9d00;
+  --paper: #f8f7e9;
+}
+html,
+body {
+  background: #05020d;
+  font-family: "Arial Black", Impact, Haettenschweiler, "Trebuchet MS", sans-serif;
+}
+body {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 60, 172, 0.28), transparent 28%),
+    radial-gradient(circle at 83% 76%, rgba(0, 229, 255, 0.25), transparent 30%),
+    repeating-linear-gradient(135deg, #070511 0 18px, #0d0820 18px 36px);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 7px 7px;
+  mix-blend-mode: overlay;
+}
+#stage-shell {
+  border: 2px solid var(--cyan);
+  background: var(--ink);
+  box-shadow:
+    -14px 0 42px rgba(255, 60, 172, 0.28),
+    14px 0 42px rgba(0, 229, 255, 0.28),
+    0 0 100px #000;
+}
+.hud {
+  border-bottom: 2px solid var(--pink);
+  background:
+    linear-gradient(110deg, rgba(255, 60, 172, 0.22), transparent 34%),
+    linear-gradient(290deg, rgba(0, 229, 255, 0.2), transparent 38%),
+    #0b071d;
+  box-shadow: 0 5px 20px rgba(0, 229, 255, 0.22);
+}
+.hud div {
+  transform: skew(-6deg);
+}
+.hud span {
+  color: var(--cyan);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 9px var(--cyan);
+}
+.hud strong {
+  color: var(--paper);
+  font-size: 19px;
+  font-style: italic;
+  letter-spacing: -0.04em;
+  text-shadow: 2px 2px 0 #621b80;
+}
+.hud button {
+  border: 2px solid var(--acid);
+  border-radius: 4px 12px 4px 12px;
+  background: var(--violet);
+  color: var(--acid);
+  box-shadow: 3px 3px 0 var(--pink);
+}
+#progress {
+  background: #150a32;
+}
+#progress-fill {
+  background: linear-gradient(90deg, var(--pink), var(--orange), var(--acid), var(--cyan));
+  box-shadow: 0 0 14px var(--cyan);
+}
+#game-wrap {
+  background: #09031c;
+}
+#game-wrap::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(105deg, transparent 0 47%, rgba(255, 255, 255, 0.035) 48% 49%, transparent 50%),
+    repeating-linear-gradient(0deg, transparent 0 5px, rgba(0, 0, 0, 0.08) 6px);
+  mix-blend-mode: screen;
+}
+#controls {
+  border-top: 3px solid var(--acid);
+  background: #090616;
+  box-shadow: 0 -9px 30px rgba(183, 255, 0, 0.14);
+}
+#controls button {
+  position: relative;
+  border-top: 0;
+  border-right: 2px solid #34245d;
+  background: linear-gradient(145deg, #211346, #080715 70%);
+  font-size: 42px;
+  text-shadow: 0 0 13px currentColor;
+}
+#controls button:nth-child(1) {
+  color: var(--pink);
+}
+#controls button:nth-child(2) {
+  color: var(--cyan);
+}
+#controls button:nth-child(3) {
+  color: var(--acid);
+}
+#controls button:nth-child(4) {
+  color: var(--orange);
+}
+#controls button.active {
+  background: currentColor;
+  color: #fff;
+  transform: translateY(4px) scale(0.97);
+  filter: brightness(1.45);
+}
+#controls button:nth-child(1).active {
+  background: var(--pink);
+}
+#controls button:nth-child(2).active {
+  background: var(--cyan);
+}
+#controls button:nth-child(3).active {
+  background: var(--acid);
+}
+#controls button:nth-child(4).active {
+  background: var(--orange);
+}
+#timing-word {
+  font-size: 38px;
+  font-style: italic;
+  -webkit-text-stroke: 1px #090312;
+  transform: skew(-8deg) rotate(-2deg);
+}
+.perfect #timing-word {
+  color: var(--cyan);
+  text-shadow: 3px 3px 0 var(--pink), 0 0 20px var(--cyan);
+}
+.good #timing-word {
+  color: var(--acid);
+  text-shadow: 3px 3px 0 #245800, 0 0 20px var(--acid);
+}
+.bad #timing-word {
+  color: var(--orange);
+  text-shadow: 3px 3px 0 #8a2500, 0 0 20px var(--orange);
+}
+.miss #timing-word {
+  color: var(--pink);
+  text-shadow: 3px 3px 0 #66002e, 0 0 20px var(--pink);
+}
+#combo-burst {
+  color: var(--acid);
+  font-style: italic;
+  -webkit-text-stroke: 2px #101018;
+  text-shadow: 5px 5px 0 var(--pink), 0 0 24px var(--acid);
+  transform: translate(-50%, -50%) rotate(-5deg);
+}
+#section-label {
+  padding: 5px 16px;
+  border: 2px solid var(--cyan);
+  background: #12072dcc;
+  color: var(--acid);
+  font-style: italic;
+  box-shadow: 5px 5px 0 var(--pink);
+  text-shadow: 0 0 9px var(--acid);
+}
+#countdown {
+  color: var(--paper);
+  font-style: italic;
+  -webkit-text-stroke: 3px #160626;
+  text-shadow:
+    8px 8px 0 var(--pink),
+    -5px -5px 0 var(--cyan),
+    0 0 34px var(--acid);
+}
+.overlay {
+  background:
+    radial-gradient(circle, transparent 0 2px, rgba(255, 60, 172, 0.13) 3px, transparent 4px) 0 0 / 12px 12px,
+    linear-gradient(145deg, rgba(12, 3, 34, 0.97), rgba(3, 15, 30, 0.97));
+}
+.panel {
+  position: relative;
+  overflow: hidden;
+  border: 3px solid var(--cyan);
+  border-radius: 4px 30px 4px 30px;
+  background:
+    linear-gradient(115deg, rgba(255, 60, 172, 0.22), transparent 38%),
+    linear-gradient(300deg, rgba(183, 255, 0, 0.12), transparent 42%),
+    #12082b;
+  box-shadow:
+    10px 10px 0 var(--pink),
+    -7px -7px 0 var(--acid),
+    0 30px 70px #000;
+  transform: rotate(-0.6deg);
+}
+.panel::before {
+  content: "RHYTHM // OVERDRIVE";
+  position: absolute;
+  top: 12px;
+  right: -36px;
+  padding: 3px 42px;
+  background: var(--acid);
+  color: #111;
+  font-size: 7px;
+  letter-spacing: 0.15em;
+  transform: rotate(35deg);
+}
+.eyebrow {
+  color: var(--cyan);
+  font-style: italic;
+  text-shadow: 0 0 10px var(--cyan);
+}
+.panel h1 {
+  font-size: 58px;
+  color: var(--paper);
+  font-style: italic;
+  transform: skew(-8deg) rotate(-2deg);
+  -webkit-text-stroke: 2px #170622;
+  text-shadow:
+    6px 6px 0 var(--pink),
+    -3px -3px 0 var(--cyan);
+}
+.panel h2 {
+  color: var(--acid);
+  font-style: italic;
+  text-transform: uppercase;
+  text-shadow: 4px 4px 0 #5a176e;
+}
+.song-info {
+  color: var(--cyan);
+}
+.song-info strong {
+  border: 2px solid var(--acid);
+  border-radius: 5px 12px 5px 12px;
+  background: var(--pink);
+  color: #fff;
+  box-shadow: 3px 3px 0 var(--cyan);
+}
+.panel button {
+  border-radius: 3px 12px 3px 12px;
+  font-style: italic;
+  transform: skew(-4deg);
+  transition: transform 80ms, filter 80ms;
+}
+.panel button:active {
+  transform: skew(-4deg) translateY(3px);
+  filter: brightness(1.35);
+}
+.primary {
+  border: 2px solid #fff;
+  background: linear-gradient(100deg, var(--pink), #8b2dff);
+  color: #fff;
+  box-shadow: 4px 4px 0 var(--cyan);
+}
+.secondary {
+  border: 2px solid var(--acid);
+  background: #19103b;
+  color: var(--acid);
+}
+.shortcut,
+.subtle,
+#result-accuracy {
+  color: #bfb7df;
+  font-family: "Trebuchet MS", sans-serif;
+}
+.key-demo {
+  color: var(--cyan);
+  text-shadow: 4px 4px 0 var(--pink), 0 0 16px var(--cyan);
+}
+#result-grade {
+  color: var(--acid);
+  font-style: italic;
+  -webkit-text-stroke: 2px #130627;
+  text-shadow: 7px 7px 0 var(--pink), -4px -4px 0 var(--cyan);
+}
+#result-stats span {
+  border: 1px solid #6848a1;
+  border-radius: 2px 10px 2px 10px;
+  background: #160c35;
+}
+#game-wrap::after {
+  content: "HIT ZONE // BURN THE BEAT";
+  bottom: 16.7%;
+  color: rgba(183, 255, 0, 0.62);
+  text-shadow: 0 0 8px var(--acid);
+}
+#recorder-panel {
+  border-bottom: 3px solid var(--acid);
+  background:
+    linear-gradient(110deg, rgba(255, 60, 172, 0.22), transparent 35%),
+    #0d0721f7;
+  box-shadow: 0 8px 30px #000, 0 3px 0 var(--pink);
+}
+.recorder-heading strong {
+  color: var(--acid);
+  font-style: italic;
+  text-shadow: 2px 2px 0 var(--pink);
+}
+.recorder-section-row select,
+.recorder-row button,
+.recorder-row select {
+  border-color: var(--cyan);
+  border-radius: 2px 8px 2px 8px;
+  background: #1a0e3c;
+}
+.recorder-row .record-primary,
+.recorder-row .record-primary.recording {
+  border-color: #fff;
+  background: var(--pink);
+  box-shadow: 2px 2px 0 var(--cyan);
+}
+#recorder-seek {
+  accent-color: var(--acid);
+}
+#recorder-readout,
+#record-status {
+  color: var(--cyan);
+}
