@@ -1,0 +1,16 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "eyesore-leaderboard",
+	"main": "src/index.js",
+	"compatibility_date": "2026-07-10",
+	"observability": {
+		"enabled": true
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "eyesore-leaderboard-db",
+			"database_id": "70c9c45c-a46c-44ab-86b0-89ab9b34c209"
+		}
+	]
+}
