@@ -55,10 +55,27 @@ button {
   display: none;
 }
 .recorder-heading,
+.recorder-section-row,
 .recorder-row {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.recorder-section-row {
+  margin-bottom: 5px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+.recorder-section-row select {
+  flex: 1;
+  min-height: 27px;
+  border: 1px solid #45414f;
+  border-radius: 6px;
+  background: #211f28;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
 }
 .recorder-heading {
   justify-content: space-between;
@@ -127,6 +144,17 @@ body.record-mode .hud {
   #stage-shell {
     border-left: 1px solid #282630;
     border-right: 1px solid #282630;
+  }
+}
+/* Phones fill their available browser viewport. Desktop keeps the centered,
+   fixed portrait cabinet even when its browser window is wide. */
+@media (hover: none) and (pointer: coarse) {
+  #stage-shell {
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    aspect-ratio: auto;
+    border: 0;
   }
 }
 
