@@ -35,3 +35,16 @@ Example:
 `AUDIO_OFFSET` is the time in seconds where beat zero occurs in the MP3. Adjust
 only that value if the whole chart consistently feels early or late. Adjust an
 individual note's `beat` if only that note or pattern feels wrong.
+
+## Recording a chart
+
+Open `index.html?record=1` (or add `?record=1` to the published URL) to use the
+quantized chart recorder. Choose a snap division, press **Record**, then play
+the four lanes with the arrow keys or touch controls. Press **Copy Chart** to
+copy note objects ready for the `notes` array in `chart.js`.
+
+- Space starts or pauses recording.
+- Z removes the most recently recorded note.
+- The timeline can seek to any part of the song.
+- Notes are saved in browser storage, so refreshing does not erase a take.
+- Multiple lanes on the same snapped beat are exported as jumps.
