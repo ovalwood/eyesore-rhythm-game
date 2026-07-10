@@ -42,6 +42,87 @@ button {
   background: #0b0b11;
   overflow: hidden;
 }
+#recorder-panel {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 20;
+  padding: 9px;
+  border-bottom: 1px solid #4a4653;
+  background: rgba(10, 10, 16, 0.97);
+  box-shadow: 0 8px 30px #000;
+}
+#recorder-panel.hidden {
+  display: none;
+}
+.recorder-heading,
+.recorder-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.recorder-heading {
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+#recorder-readout,
+#record-status {
+  color: #aaa6b3;
+  font-variant-numeric: tabular-nums;
+}
+#recorder-seek {
+  width: 100%;
+  margin: 0 0 5px;
+  accent-color: #fff;
+}
+.recorder-row button,
+.recorder-row select {
+  min-height: 29px;
+  border: 1px solid #45414f;
+  border-radius: 6px;
+  background: #211f28;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+}
+.recorder-row button {
+  flex: 1;
+}
+.recorder-row .record-primary,
+.recorder-row .record-primary.recording {
+  border-color: #ff6b76;
+  background: #cf3542;
+}
+.recorder-settings {
+  margin-top: 6px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+.recorder-settings select {
+  width: 56px;
+}
+.recorder-settings #record-copy {
+  flex: 0 0 92px;
+}
+#record-status {
+  flex: 1;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#record-output {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+body.record-mode .hud {
+  visibility: hidden;
+}
 @media (min-aspect-ratio: 390/844) {
   #stage-shell {
     border-left: 1px solid #282630;

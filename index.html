@@ -13,6 +13,39 @@
   <body>
     <!-- The fixed-ratio phone viewport. Desktop browsers center this shell. -->
     <div id="stage-shell">
+      <section id="recorder-panel" class="hidden" aria-label="Chart recorder">
+        <div class="recorder-heading">
+          <strong>CHART RECORDER</strong>
+          <span id="recorder-readout">0:00.000 · beat -0.89 · 0 notes</span>
+        </div>
+        <input
+          id="recorder-seek"
+          type="range"
+          min="0"
+          max="145.125"
+          value="0"
+          step="0.01"
+          aria-label="Song position"
+        />
+        <div class="recorder-row">
+          <button id="record-toggle" class="record-primary">RECORD</button>
+          <button id="record-start">START</button>
+          <button id="record-undo">UNDO</button>
+          <button id="record-clear">CLEAR</button>
+        </div>
+        <div class="recorder-row recorder-settings">
+          <label for="record-quantize">SNAP</label>
+          <select id="record-quantize">
+            <option value="1">1/4</option>
+            <option value="0.5">1/8</option>
+            <option value="0.3333333333">1/12</option>
+            <option value="0.25" selected>1/16</option>
+          </select>
+          <button id="record-copy">COPY CHART</button>
+          <span id="record-status">Ready</span>
+        </div>
+        <textarea id="record-output" aria-label="Recorded chart output" readonly></textarea>
+      </section>
       <main id="app">
         <!-- Always-visible gameplay HUD. -->
         <header class="hud">

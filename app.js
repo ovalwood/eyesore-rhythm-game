@@ -15,6 +15,8 @@ const $ = (s) => document.querySelector(s),
     results: $("#results-screen"),
   };
 const LANES = 4,
+  RECORD_MODE = new URLSearchParams(location.search).has("record"),
+  RECORD_STORAGE_KEY = "eyesore-recorded-chart-v1",
   // Notes become visible this many seconds before their scheduled hit time.
   APPROACH = 1.48,
   // The receptors sit 82% of the way down the canvas.
@@ -35,7 +37,8 @@ let state = "title",
   raf,
   lastSection = "",
   receptorFlashUntil = Array(LANES).fill(0),
-  buttonFlashTimers = Array(LANES).fill(null);
+  buttonFlashTimers = Array(LANES).fill(null),
+  recordedNotes = loadRecordedNotes();
 
 // -----------------------------------------------------------------------------
 // Screen, canvas, and HUD helpers
@@ -60,7 +63,9 @@ function resize() {
 function reset() {
   // Clone the source notes because `done` and `missed` are runtime-only flags.
   // This leaves the original chart untouched for the next playthrough.
-  chart = C.notes.map((n) => ({ ...n, done: false, missed: false }));
+  chart = RECORD_MODE
+    ? []
+    : C.notes.map((n) => ({ ...n, done: false, missed: false }));
   score = combo = maxCombo = weighted = judgedCount = 0;
   j = { PERFECT: 0, GOOD: 0, BAD: 0, MISS: 0 };
   audio.currentTime = 0;
@@ -120,6 +125,11 @@ function judge(name, offset = null) {
   updateHud();
 }
 function hit(lane) {
+  if (RECORD_MODE) {
+    flash(lane);
+    if (state === "recording") recordLane(lane);
+    return;
+  }
   if (state !== "playing") return;
   flash(lane);
 
@@ -148,6 +158,123 @@ function flash(l) {
     () => buttons[l].classList.remove("active"),
     90,
   );
+}
+
+// -----------------------------------------------------------------------------
+// Quantized chart recorder (?record=1)
+// -----------------------------------------------------------------------------
+function loadRecordedNotes() {
+  try {
+    let saved = JSON.parse(localStorage.getItem(RECORD_STORAGE_KEY) || "[]");
+    return Array.isArray(saved)
+      ? saved.filter(
+          (n) =>
+            Number.isFinite(n.beat) &&
+            Number.isInteger(n.lane) &&
+            n.lane >= 0 &&
+            n.lane < LANES,
+        )
+      : [];
+  } catch (e) {
+    return [];
+  }
+}
+function recordSection(time) {
+  return C.sections.find((s) => time >= s.start && time < s.end)?.name || "OUTRO";
+}
+function quantizedBeat(time) {
+  let raw = ((time - C.offset) * C.bpm) / 60,
+    grid = +$("#record-quantize").value;
+  return Math.round((Math.round(raw / grid) * grid) * 10000) / 10000;
+}
+function recordLane(lane) {
+  let beat = quantizedBeat(audio.currentTime);
+  if (beat < 0) {
+    setRecordStatus("Before beat zero");
+    return;
+  }
+  if (recordedNotes.some((n) => n.lane === lane && n.beat === beat)) {
+    setRecordStatus("Duplicate skipped");
+    return;
+  }
+  recordedNotes.push({ beat, lane });
+  saveRecording();
+  setRecordStatus(`Added lane ${lane + 1} at beat ${beat}`);
+}
+function sortedRecording() {
+  return [...recordedNotes].sort((a, b) => a.beat - b.beat || a.lane - b.lane);
+}
+function recordingText() {
+  let lines = sortedRecording().map((n) => {
+    let time = C.offset + (n.beat * 60) / C.bpm,
+      section = recordSection(time);
+    return `    { beat: ${n.beat}, lane: ${n.lane}, type: "tap", section: "${section}" },`;
+  });
+  return `notes: [\n${lines.join("\n")}\n]`;
+}
+function saveRecording() {
+  localStorage.setItem(RECORD_STORAGE_KEY, JSON.stringify(recordedNotes));
+  $("#record-output").value = recordingText();
+  updateRecorderReadout();
+}
+function setRecordStatus(message) {
+  $("#record-status").textContent = message;
+}
+function updateRecorderReadout() {
+  if (!RECORD_MODE) return;
+  let minutes = Math.floor(audio.currentTime / 60),
+    seconds = (audio.currentTime % 60).toFixed(3).padStart(6, "0"),
+    beat = (((audio.currentTime - C.offset) * C.bpm) / 60).toFixed(2),
+    seek = $("#recorder-seek");
+  $("#recorder-readout").textContent =
+    `${minutes}:${seconds} · beat ${beat} · ${recordedNotes.length} notes`;
+  if (document.activeElement !== seek) seek.value = audio.currentTime;
+}
+async function toggleRecording() {
+  let button = $("#record-toggle");
+  if (state === "recording") {
+    audio.pause();
+    state = "record-paused";
+    button.textContent = "RECORD";
+    button.classList.remove("recording");
+    setRecordStatus("Paused");
+    return;
+  }
+  if (audio.ended) audio.currentTime = 0;
+  try {
+    await audio.play();
+    state = "recording";
+    button.textContent = "PAUSE";
+    button.classList.add("recording");
+    setRecordStatus("Recording arrow presses");
+  } catch (e) {
+    setRecordStatus("Playback was blocked; tap RECORD again");
+  }
+}
+function undoRecording() {
+  let removed = recordedNotes.pop();
+  saveRecording();
+  setRecordStatus(removed ? `Removed beat ${removed.beat}` : "Nothing to undo");
+}
+function clearRecording() {
+  if (recordedNotes.length && !confirm("Clear every recorded note?")) return;
+  recordedNotes = [];
+  saveRecording();
+  setRecordStatus("Recording cleared");
+}
+async function copyRecording() {
+  let output = recordingText(),
+    textarea = $("#record-output");
+  textarea.value = output;
+  try {
+    await navigator.clipboard.writeText(output);
+  } catch (e) {
+    textarea.style.pointerEvents = "auto";
+    textarea.select();
+    document.execCommand("copy");
+    textarea.style.pointerEvents = "none";
+  }
+  setRecordStatus(`Copied ${recordedNotes.length} notes`);
 }
 function section(now) {
   let s = C.sections.find((x) => now >= x.start && now < x.end);
@@ -221,6 +348,10 @@ function draw() {
     section(now);
     $("#progress-fill").style.width =
       Math.min(100, (now / C.duration) * 100) + "%";
+  } else if (RECORD_MODE) {
+    $("#progress-fill").style.width =
+      Math.min(100, (now / C.duration) * 100) + "%";
+    updateRecorderReadout();
   }
   // The loop always runs so menus still show the playfield behind their overlay.
   raf = requestAnimationFrame(draw);
@@ -361,6 +492,21 @@ function finish() {
 // -----------------------------------------------------------------------------
 // Touch, mouse, keyboard, and browser event wiring
 // -----------------------------------------------------------------------------
+$("#record-toggle").onclick = toggleRecording;
+$("#record-start").onclick = () => {
+  audio.currentTime = 0;
+  updateRecorderReadout();
+  setRecordStatus("Moved to start");
+};
+$("#record-undo").onclick = undoRecording;
+$("#record-clear").onclick = clearRecording;
+$("#record-copy").onclick = copyRecording;
+$("#recorder-seek").oninput = (e) => {
+  audio.currentTime = +e.target.value;
+  updateRecorderReadout();
+};
+$("#record-quantize").onchange = () =>
+  setRecordStatus(`Snap set to ${$("#record-quantize").selectedOptions[0].text}`);
 $("#start-button").onclick = () => countdown(true);
 $("#pause-button").onclick = () =>
   state === "playing" ? pause() : state === "paused" ? resume() : 0;
@@ -380,6 +526,19 @@ buttons.forEach(
 );
 let keys = { ArrowLeft: 0, ArrowUp: 1, ArrowDown: 2, ArrowRight: 3 };
 addEventListener("keydown", (e) => {
+  if (RECORD_MODE) {
+    if (keys[e.code] != null) {
+      e.preventDefault();
+      if (!e.repeat) hit(keys[e.code]);
+    } else if (e.code === "Space" && !e.repeat) {
+      e.preventDefault();
+      toggleRecording();
+    } else if (e.code === "KeyZ" && !e.repeat) {
+      e.preventDefault();
+      undoRecording();
+    }
+    return;
+  }
   if (keys[e.code] != null) {
     e.preventDefault();
     if (!e.repeat) hit(keys[e.code]);
@@ -406,16 +565,38 @@ addEventListener("keydown", (e) => {
     countdown(true);
   }
 });
-audio.onended = finish;
+audio.onended = () => {
+  if (RECORD_MODE) {
+    state = "record-paused";
+    $("#record-toggle").textContent = "RECORD";
+    $("#record-toggle").classList.remove("recording");
+    setRecordStatus("Song ended");
+  } else {
+    finish();
+  }
+};
 // Avoid letting the song continue invisibly when a phone locks or changes tabs.
 document.addEventListener(
   "visibilitychange",
-  () => document.hidden && state === "playing" && pause(),
+  () => {
+    if (!document.hidden) return;
+    if (state === "playing") pause();
+    else if (state === "recording") toggleRecording();
+  },
 );
 addEventListener("resize", resize);
 
 // Initial boot: prepare a fresh run, show the title, and start rendering.
 resize();
 reset();
-showOnly("title");
+if (RECORD_MODE) {
+  document.body.classList.add("record-mode");
+  hideScreens();
+  $("#recorder-panel").classList.remove("hidden");
+  $("#recorder-seek").max = C.duration;
+  state = "record-paused";
+  saveRecording();
+} else {
+  showOnly("title");
+}
 draw();
