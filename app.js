@@ -15,6 +15,7 @@ const $ = (s) => document.querySelector(s),
     results: $("#results-screen"),
   };
 const LANES = 4,
+  LANE_COLORS = ["#ff3cac", "#00e5ff", "#b7ff00", "#ff9d00"],
   RECORD_MODE = new URLSearchParams(location.search).has("record"),
   RECORD_STORAGE_KEY = "eyesore-recorded-chart-v1",
   // Notes become visible this many seconds before their scheduled hit time.
@@ -99,6 +100,7 @@ function burst() {
   if (combo > 0 && combo % 10 === 0) {
     let e = $("#combo-burst");
     e.textContent = combo + " COMBO";
+    e.classList.remove("show");
     void e.offsetWidth;
     e.classList.add("show");
   }
@@ -328,6 +330,7 @@ function section(now) {
     lastSection = s.name;
     let e = $("#section-label");
     e.textContent = s.name;
+    e.classList.remove("show");
     void e.offsetWidth;
     e.classList.add("show");
   }
@@ -344,26 +347,43 @@ function draw() {
     now = audio.currentTime;
   ctx.clearRect(0, 0, w, h);
 
-  // Paint the playfield and alternating lane backgrounds.
+  // Paint a neon speedway: a dark horizon, color-coded lanes, and receding
+  // horizontal grid lines keep the playfield energetic without hiding notes.
   let g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, "#090910");
-  g.addColorStop(1, "#1c1822");
+  g.addColorStop(0, "#08031a");
+  g.addColorStop(0.46, "#17103a");
+  g.addColorStop(1, "#050814");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
   for (let l = 0; l < 4; l++) {
-    ctx.fillStyle = l % 2 ? "rgba(255,255,255,.025)" : "rgba(255,255,255,.055)";
+    ctx.fillStyle = `${LANE_COLORS[l]}13`;
     ctx.fillRect(l * lw, 0, lw, h);
-    ctx.strokeStyle = "rgba(255,255,255,.10)";
+    ctx.strokeStyle = `${LANE_COLORS[l]}55`;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(l * lw, 0);
     ctx.lineTo(l * lw, h);
     ctx.stroke();
   }
+  for (let line = 0; line < 9; line++) {
+    let p = line / 8,
+      y = h * (0.16 + p * p * 0.78);
+    ctx.strokeStyle = `rgba(0,229,255,${0.05 + p * 0.12})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
   // Draw the horizontal hit line and the four stationary receptors.
-  ctx.shadowBlur = 18;
-  ctx.shadowColor = "#fff";
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, hy, w, 4);
+  let hitGradient = ctx.createLinearGradient(0, 0, w, 0);
+  LANE_COLORS.forEach((color, lane) =>
+    hitGradient.addColorStop(lane / (LANES - 1), color),
+  );
+  ctx.shadowBlur = 24;
+  ctx.shadowColor = "#00e5ff";
+  ctx.fillStyle = hitGradient;
+  ctx.fillRect(0, hy - 2, w, 6);
   ctx.shadowBlur = 0;
   drawReceptors(ctx, w, hy, lw, performance.now());
   // Convert each upcoming note's time into a vertical position. A note starts
@@ -374,11 +394,11 @@ function draw() {
     if (until > APPROACH || until < -WIN.bad) continue;
     let y = (1 - until / APPROACH) * hy,
       x = n.lane * lw + lw / 2;
-    ctx.fillStyle = "#f8f7fb";
-    ctx.strokeStyle = "#111118";
+    ctx.fillStyle = LANE_COLORS[n.lane];
+    ctx.strokeStyle = "#fff";
     ctx.lineWidth = 3;
-    ctx.shadowBlur = 14;
-    ctx.shadowColor = "rgba(255,255,255,.75)";
+    ctx.shadowBlur = 22;
+    ctx.shadowColor = LANE_COLORS[n.lane];
     drawArrow(ctx, x, y, lw * 0.29, n.lane, true);
     ctx.fill();
     ctx.stroke();
@@ -417,12 +437,12 @@ function drawReceptors(c, w, hy, lw, now) {
     let x = l * lw + lw / 2,
       active = now < receptorFlashUntil[l];
     c.save();
-    c.globalAlpha = active ? 1 : 0.9;
-    c.fillStyle = active ? "#fff" : "rgba(12,12,18,.82)";
-    c.strokeStyle = active ? "#fff" : "rgba(255,255,255,.92)";
+    c.globalAlpha = active ? 1 : 0.96;
+    c.fillStyle = active ? LANE_COLORS[l] : "rgba(4,5,16,.88)";
+    c.strokeStyle = active ? "#fff" : LANE_COLORS[l];
     c.lineWidth = active ? 5 : 3;
     c.shadowBlur = active ? 32 : 10;
-    c.shadowColor = active ? "#fff" : "rgba(255,255,255,.5)";
+    c.shadowColor = LANE_COLORS[l];
     drawArrow(c, x, hy, lw * 0.31, l, false);
     c.fill();
     c.stroke();
