@@ -18,6 +18,12 @@
           <strong>CHART RECORDER</strong>
           <span id="recorder-readout">0:00.000 · beat -0.89 · 0 notes</span>
         </div>
+        <div class="recorder-section-row">
+          <label for="record-section">SECTION</label>
+          <select id="record-section">
+            <option value="all">ALL SONG</option>
+          </select>
+        </div>
         <input
           id="recorder-seek"
           type="range"
@@ -29,7 +35,7 @@
         />
         <div class="recorder-row">
           <button id="record-toggle" class="record-primary">RECORD</button>
-          <button id="record-start">START</button>
+          <button id="record-start">SECTION START</button>
           <button id="record-undo">UNDO</button>
           <button id="record-clear">CLEAR</button>
         </div>

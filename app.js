@@ -182,15 +182,36 @@ function loadRecordedNotes() {
 function recordSection(time) {
   return C.sections.find((s) => time >= s.start && time < s.end)?.name || "OUTRO";
 }
+function selectedRecordSection() {
+  let value = $("#record-section").value;
+  return value === "all" ? null : C.sections[+value];
+}
+function recordRange() {
+  let selected = selectedRecordSection();
+  return selected || { name: "ALL SONG", start: 0, end: C.duration };
+}
+function recordedNoteTime(note) {
+  return C.offset + (note.beat * 60) / C.bpm;
+}
+function noteIsInRecordRange(note, range = recordRange()) {
+  let time = recordedNoteTime(note);
+  return time >= range.start && time < range.end;
+}
 function quantizedBeat(time) {
   let raw = ((time - C.offset) * C.bpm) / 60,
     grid = +$("#record-quantize").value;
   return Math.round((Math.round(raw / grid) * grid) * 10000) / 10000;
 }
 function recordLane(lane) {
-  let beat = quantizedBeat(audio.currentTime);
+  let beat = quantizedBeat(audio.currentTime),
+    range = recordRange(),
+    snappedTime = C.offset + (beat * 60) / C.bpm;
   if (beat < 0) {
     setRecordStatus("Before beat zero");
+    return;
+  }
+  if (snappedTime < range.start || snappedTime >= range.end) {
+    setRecordStatus(`Outside ${range.name}`);
     return;
   }
   if (recordedNotes.some((n) => n.lane === lane && n.beat === beat)) {
@@ -225,22 +246,32 @@ function updateRecorderReadout() {
   let minutes = Math.floor(audio.currentTime / 60),
     seconds = (audio.currentTime % 60).toFixed(3).padStart(6, "0"),
     beat = (((audio.currentTime - C.offset) * C.bpm) / 60).toFixed(2),
-    seek = $("#recorder-seek");
+    seek = $("#recorder-seek"),
+    sectionCount = recordedNotes.filter((n) => noteIsInRecordRange(n)).length;
   $("#recorder-readout").textContent =
-    `${minutes}:${seconds} · beat ${beat} · ${recordedNotes.length} notes`;
+    `${minutes}:${seconds} · beat ${beat} · ${sectionCount}/${recordedNotes.length} notes`;
   if (document.activeElement !== seek) seek.value = audio.currentTime;
+}
+function pauseRecording(message = "Paused") {
+  audio.pause();
+  state = "record-paused";
+  $("#record-toggle").textContent = "RECORD";
+  $("#record-toggle").classList.remove("recording");
+  setRecordStatus(message);
 }
 async function toggleRecording() {
   let button = $("#record-toggle");
   if (state === "recording") {
-    audio.pause();
-    state = "record-paused";
-    button.textContent = "RECORD";
-    button.classList.remove("recording");
-    setRecordStatus("Paused");
+    pauseRecording();
     return;
   }
-  if (audio.ended) audio.currentTime = 0;
+  let range = recordRange();
+  if (
+    audio.ended ||
+    audio.currentTime < range.start ||
+    audio.currentTime >= range.end
+  )
+    audio.currentTime = range.start;
   try {
     await audio.play();
     state = "recording";
@@ -252,15 +283,30 @@ async function toggleRecording() {
   }
 }
 function undoRecording() {
-  let removed = recordedNotes.pop();
+  let index = recordedNotes.length - 1;
+  while (index >= 0 && !noteIsInRecordRange(recordedNotes[index])) index--;
+  let removed = index < 0 ? null : recordedNotes.splice(index, 1)[0];
   saveRecording();
-  setRecordStatus(removed ? `Removed beat ${removed.beat}` : "Nothing to undo");
+  setRecordStatus(
+    removed ? `Removed beat ${removed.beat}` : "Nothing to undo in this section",
+  );
 }
 function clearRecording() {
-  if (recordedNotes.length && !confirm("Clear every recorded note?")) return;
-  recordedNotes = [];
+  let range = recordRange(),
+    count = recordedNotes.filter((n) => noteIsInRecordRange(n, range)).length;
+  if (count && !confirm(`Clear ${count} notes from ${range.name}?`)) return;
+  recordedNotes = recordedNotes.filter((n) => !noteIsInRecordRange(n, range));
   saveRecording();
-  setRecordStatus("Recording cleared");
+  setRecordStatus(`${range.name} cleared`);
+}
+function selectRecorderSection() {
+  let range = recordRange(),
+    seek = $("#recorder-seek");
+  pauseRecording(`${range.name} selected`);
+  seek.min = range.start;
+  seek.max = range.end;
+  audio.currentTime = range.start;
+  updateRecorderReadout();
 }
 async function copyRecording() {
   let output = recordingText(),
@@ -349,6 +395,15 @@ function draw() {
     $("#progress-fill").style.width =
       Math.min(100, (now / C.duration) * 100) + "%";
   } else if (RECORD_MODE) {
+    let range = recordRange();
+    if (
+      state === "recording" &&
+      range.name !== "ALL SONG" &&
+      now >= range.end
+    ) {
+      audio.currentTime = range.end;
+      pauseRecording(`${range.name} complete`);
+    }
     $("#progress-fill").style.width =
       Math.min(100, (now / C.duration) * 100) + "%";
     updateRecorderReadout();
@@ -411,6 +466,7 @@ function roundRect(x, y, w, h, r) {
 function countText(t) {
   let e = $("#countdown");
   e.textContent = t;
+  e.classList.remove("show");
   void e.offsetWidth;
   e.classList.add("show");
 }
@@ -494,10 +550,11 @@ function finish() {
 // -----------------------------------------------------------------------------
 $("#record-toggle").onclick = toggleRecording;
 $("#record-start").onclick = () => {
-  audio.currentTime = 0;
+  audio.currentTime = recordRange().start;
   updateRecorderReadout();
-  setRecordStatus("Moved to start");
+  setRecordStatus(`Moved to ${recordRange().name} start`);
 };
+$("#record-section").onchange = selectRecorderSection;
 $("#record-undo").onclick = undoRecording;
 $("#record-clear").onclick = clearRecording;
 $("#record-copy").onclick = copyRecording;
@@ -567,10 +624,7 @@ addEventListener("keydown", (e) => {
 });
 audio.onended = () => {
   if (RECORD_MODE) {
-    state = "record-paused";
-    $("#record-toggle").textContent = "RECORD";
-    $("#record-toggle").classList.remove("recording");
-    setRecordStatus("Song ended");
+    pauseRecording("Song ended");
   } else {
     finish();
   }
@@ -593,6 +647,13 @@ if (RECORD_MODE) {
   document.body.classList.add("record-mode");
   hideScreens();
   $("#recorder-panel").classList.remove("hidden");
+  let sectionSelect = $("#record-section");
+  C.sections.forEach((section, index) => {
+    let option = document.createElement("option");
+    option.value = index;
+    option.textContent = section.name;
+    sectionSelect.append(option);
+  });
   $("#recorder-seek").max = C.duration;
   state = "record-paused";
   saveRecording();

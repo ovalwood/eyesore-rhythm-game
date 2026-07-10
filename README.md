@@ -46,5 +46,8 @@ copy note objects ready for the `notes` array in `chart.js`.
 - Space starts or pauses recording.
 - Z removes the most recently recorded note.
 - The timeline can seek to any part of the song.
+- The section selector limits playback and editing to one named song section.
+- Recording stops automatically at the selected section's end.
+- Undo and Clear affect only the selected section; other sections stay intact.
 - Notes are saved in browser storage, so refreshing does not erase a take.
 - Multiple lanes on the same snapped beat are exported as jumps.
